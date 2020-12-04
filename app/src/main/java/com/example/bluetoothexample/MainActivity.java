@@ -16,7 +16,6 @@ import android.os.Bundle;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.view.View;
-import android.widget.Adapter;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -29,14 +28,10 @@ public class MainActivity extends AppCompatActivity {
 
     Button b1,b2,b3,b4,b5;
     private BluetoothAdapter BA;
-    private BluetoothClass bluetoothClass;
     private BluetoothDevice device;
     private Set<BluetoothDevice> pairedDevices;
-    private Set<BluetoothDevice> discoveredDevices;
     private ArrayAdapter<String>  mAdapter;
-    private ArrayList arrayList;
     private BroadcastReceiver mReceiver;
-    ArrayList list = new ArrayList();
     ListView lv;
 
 
@@ -59,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+
+
     ///////////////////////////////
     public void discover(View view){
 
@@ -69,13 +66,7 @@ public class MainActivity extends AppCompatActivity {
                     1);
         }
 
-        pairedDevices = BA.getBondedDevices();
 
-        ArrayList list = new ArrayList();
-
-        for(BluetoothDevice bt: pairedDevices){
-            list.add(bt.getName()+"\n"+bt.getBluetoothClass()+"\n"+bt.getAddress());
-        }
 
         // If another discovery is in progress, cancels it before starting the new one.
         if (BA.isDiscovering()) {
@@ -83,50 +74,49 @@ public class MainActivity extends AppCompatActivity {
             BA.cancelDiscovery();
         }
 
+        //Start scanning for devices.
         BA.startDiscovery();
+
+        //Find paired devices first
+        pairedDevices = BA.getBondedDevices();
+
+        ArrayList list = new ArrayList();
+
+
+        for(BluetoothDevice bt: pairedDevices){
+
+            list.add(bt.getName()+"\nSignal: dBm"+"\nMAC: "+bt.getAddress());
+        }
+
         Toast.makeText(getApplicationContext(),"Scanning for devices.",Toast.LENGTH_SHORT).show();
-       // lv.setAdapter(mAdapter);
+
         mReceiver = new BroadcastReceiver() {
             public void onReceive(Context context, Intent intent) {
 
+                int  rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI,Short.MIN_VALUE);
+
                 String action = intent.getAction();
 
-                //Finding devices
+                //Finding unpaired devices
                 if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-
 
                     // Get the BluetoothDevice object from the Intent
                     device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
                     // Get the BluetoothDevice device class
-                    bluetoothClass = device.getBluetoothClass();
+                   // bluetoothClass = device.getBluetoothClass();
 
-                    String deviceName,deviceType;
-
-                   /* if(bluetoothClass.getDeviceClass() ==  BluetoothClass.Device.COMPUTER_LAPTOP) {
-                        deviceType = "LAPTOP COMPUTER";
-                    }else{
-                        deviceType= "Unknown Type" ;
-                    }
-                    if(bluetoothClass.getDeviceClass() ==  BluetoothClass.Device.PHONE_CELLULAR) {
-                        deviceType = "MOBILE PHONE";
-                    }else{
-                        deviceType= "Unknown Type" ;
-                    }
-                    if(bluetoothClass.getDeviceClass() ==  BluetoothClass.Device.PHONE_UNCATEGORIZED) {
-                        deviceType = "MOBILE PHONE";
-                    }else{
-                        deviceType= "Unknown Type" ;
-                    }      */
+                    String deviceName;
 
                     if(device.getName()!= null){
-                        deviceName=device.getName();
+                        deviceName = device.getName();
                     }else{
                         deviceName = "Unknown Device";
                     }
 
 
-                    mAdapter.add(deviceName +"\n"+ bluetoothClass.getDeviceClass() +"\n"+ device.getAddress());
+                    mAdapter.add(deviceName +"\nSignal: "+rssi+ "dBm" +"\nMAC: "+ device.getAddress());
+
 
                 }
 
@@ -192,16 +182,5 @@ public class MainActivity extends AppCompatActivity {
         mAdapter = new ArrayAdapter(this,android.R.layout.simple_expandable_list_item_1,list);
         lv.setAdapter(mAdapter);
 
-    }
-
-    public void clear(View v){
-
-        mAdapter.clear();
-
-
-    
-   /* public String getBluetoothDeviceMajorClassName() {
-        return BluetoothClassResolver.resolveMajorDeviceClass(mDevice.getBluetoothClass().getMajorDeviceClass());
-    }  */
     }
 }
